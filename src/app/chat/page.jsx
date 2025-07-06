@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useAuth } from "../../contexts/AuthContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import ForgejoApiClient from "../../lib/apiClient";
+
+// MDEditorはSSR非対応のためdynamic import
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 export default function ChatPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -14,6 +18,46 @@ export default function ChatPage() {
   const [currentChannel, setCurrentChannel] = useState("general");
   const [loadingRepos, setLoadingRepos] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // 入力欄の高さ（ドラッグで可変）
+  const [inputHeight, setInputHeight] = useState(100);
+  const dragRef = useRef(null);
+  const dragging = useRef(false);
+  const startY = useRef(0);
+  const startHeight = useRef(0);
+
+  // ドラッグ開始
+  const handleDragStart = (e) => {
+    dragging.current = true;
+    startY.current = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+    startHeight.current = inputHeight;
+    document.body.style.cursor = "ns-resize";
+    document.addEventListener("mousemove", handleDrag);
+    document.addEventListener("mouseup", handleDragEnd);
+    document.addEventListener("touchmove", handleDrag, { passive: false });
+    document.addEventListener("touchend", handleDragEnd);
+  };
+
+  // ドラッグ中
+  const handleDrag = (e) => {
+    if (!dragging.current) return;
+    const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+    // 上部ハンドル用: 下にドラッグで大きく、上で小さく
+    let newHeight = startHeight.current - (clientY - startY.current);
+    newHeight = Math.max(60, Math.min(newHeight, 400));
+    setInputHeight(newHeight);
+    if (e.type === "touchmove") e.preventDefault();
+  };
+
+  // ドラッグ終了
+  const handleDragEnd = () => {
+    dragging.current = false;
+    document.body.style.cursor = "";
+    document.removeEventListener("mousemove", handleDrag);
+    document.removeEventListener("mouseup", handleDragEnd);
+    document.removeEventListener("touchmove", handleDrag);
+    document.removeEventListener("touchend", handleDragEnd);
+  };
 
   // リポジトリ一覧取得
   useEffect(() => {
@@ -62,7 +106,10 @@ export default function ChatPage() {
     setSending(true);
     const res = await fetch("/api/chat/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-user-data": JSON.stringify(user)
+      },
       body: JSON.stringify({ text: input, channel: currentChannel }),
     });
     setInput("");
@@ -91,6 +138,18 @@ export default function ChatPage() {
     if (channelId === "general") return "💬";
     const repo = repositories.find(r => r.id.toString() === channelId);
     return repo?.metadata?.emoji || "📁";
+  };
+
+  // チャット内容をissueに送信
+  const sendChatToIssue = async (repoId, title, content) => {
+    try {
+      const apiClient = new ForgejoApiClient();
+      const result = await apiClient.createIssue(repoId, { title, body: content });
+      return result;
+    } catch (error) {
+      console.error('Issue作成エラー:', error);
+      throw error;
+    }
   };
 
   if (isLoading) return <LoadingSpinner message="チャットを準備中..." />;
@@ -166,24 +225,83 @@ export default function ChatPage() {
                   <span className="chat-message-user">{msg.user?.full_name || msg.user?.login || "?"}</span>
                   <span className="chat-message-time">{new Date(msg.createdAt).toLocaleTimeString("ja-JP")}</span>
                 </div>
-                <div className="chat-message-text">{msg.text}</div>
+                <div className="chat-message-text">
+                  <MDEditor.Markdown source={msg.text} style={{ background: "none" }} />
+                  {currentChannel !== "general" && (
+                    <button 
+                      className="chat-issue-btn"
+                      onClick={() => {
+                        const repo = repositories.find(r => r.id.toString() === currentChannel);
+                        if (repo) {
+                          const title = `チャット: ${msg.user?.full_name || msg.user?.login}`;
+                          const content = `**投稿者:** ${msg.user?.full_name || msg.user?.login}  
+**投稿日時:** ${new Date(msg.createdAt).toLocaleString("ja-JP")}  
+**チャンネル:** ${repo.full_name}  
+
+---
+
+${msg.text}`;
+                          sendChatToIssue(repo.id, title, content)
+                            .then(() => alert('Issueを作成しました！'))
+                            .catch(() => alert('Issue作成に失敗しました'));
+                        }
+                      }}
+                      title="このメッセージをIssueに送信"
+                    >
+                      🐛
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
-        <form className="chat-input-form" onSubmit={handleSend}>
-          <input
-            type="text"
-            className="chat-input"
-            placeholder="メッセージを入力..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={sending}
-            maxLength={500}
-          />
-          <button className="chat-send-btn" type="submit" disabled={sending || !input.trim()}>
-            送信
+        <form className="chat-input-form" onSubmit={handleSend} style={{ alignItems: "flex-end" }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+            {/* ドラッグハンドル（上部） */}
+            <div
+              ref={dragRef}
+              style={{
+                height: 10,
+                cursor: "ns-resize",
+                background: "linear-gradient(90deg, #eee 30%, #ccc 70%)",
+                borderRadius: 4,
+                marginBottom: 2,
+                marginTop: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                userSelect: "none",
+                touchAction: "none"
+              }}
+              onMouseDown={handleDragStart}
+              onTouchStart={handleDragStart}
+              title="上下にドラッグして入力欄の高さを調整"
+            >
+              <div style={{
+                width: 32,
+                height: 4,
+                background: "#bbb",
+                borderRadius: 2,
+                opacity: 0.7
+              }} />
+            </div>
+            <MDEditor
+              value={input}
+              onChange={setInput}
+              height={inputHeight}
+              preview="edit"
+              textareaProps={{
+                placeholder: "メッセージを入力...",
+                maxLength: 500,
+                disabled: sending,
+                style: { fontSize: "1rem" }
+              }}
+            />
+          </div>
+          <button className="chat-send-btn" type="submit" disabled={sending || !input || !input.trim()} style={{ marginLeft: 8, height: 40 }}>
+            <i className="fas fa-paper-plane"></i> 送信
           </button>
         </form>
       </main>
