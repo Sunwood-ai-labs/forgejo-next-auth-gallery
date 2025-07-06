@@ -8,6 +8,7 @@ import ForgejoApiClient from "../../lib/apiClient";
 
 // MDEditorはSSR非対応のためdynamic import
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+const MDEditorMarkdown = dynamic(() => import("@uiw/react-md-editor").then(mod => ({ default: mod.default.Markdown })), { ssr: false });
 
 export default function ChatPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -104,6 +105,10 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim()) return;
     setSending(true);
+    
+    // #見出しがあるかチェック
+    const hasHeading = input.includes('#');
+    
     const res = await fetch("/api/chat/messages", {
       method: "POST",
       headers: { 
@@ -112,13 +117,38 @@ export default function ChatPage() {
       },
       body: JSON.stringify({ text: input, channel: currentChannel }),
     });
-    setInput("");
-    setSending(false);
+    
     // 送信後即リロード
     if (res.ok) {
       const data = await res.json();
       setMessages(data.messages || []);
+      
+      // #見出しがあり、リポジトリチャンネルの場合、自動でIssue作成
+      if (hasHeading && currentChannel !== "general") {
+        const repo = repositories.find(r => r.id.toString() === currentChannel);
+        if (repo) {
+          const headingMatch = input.match(/^#+\s*(.+)/m);
+          const title = headingMatch ? headingMatch[1] : `チャット: ${user.full_name || user.login}`;
+          const content = `**投稿者:** ${user.full_name || user.login}  
+**投稿日時:** ${new Date().toLocaleString("ja-JP")}  
+**チャンネル:** ${repo.full_name}  
+
+---
+
+${input}`;
+          
+          try {
+            await sendChatToIssue(repo.id, title, content);
+            alert(`Issue「${title}」を作成しました！`);
+          } catch (error) {
+            console.error('自動Issue作成エラー:', error);
+          }
+        }
+      }
     }
+    
+    setInput("");
+    setSending(false);
   };
 
   // チャンネル変更
@@ -226,7 +256,7 @@ export default function ChatPage() {
                   <span className="chat-message-time">{new Date(msg.createdAt).toLocaleTimeString("ja-JP")}</span>
                 </div>
                 <div className="chat-message-text">
-                  <MDEditor.Markdown source={msg.text} style={{ background: "none" }} />
+                  <MDEditorMarkdown source={msg.text.replace(/\\n/g, '\n')} style={{ background: "none", whiteSpace: "pre-wrap" }} />
                   {currentChannel !== "general" && (
                     <button 
                       className="chat-issue-btn"
