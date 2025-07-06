@@ -4,7 +4,7 @@ let pool;
 
 if (!pool) {
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres123@localhost:5432/forgejo_todo',
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres123@localhost:5432/forgejo_gallery',
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     max: 20,
     idleTimeoutMillis: 30000,

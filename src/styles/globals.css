@@ -1218,6 +1218,30 @@ body {
   color: #1d1c1d;
 }
 
+.chat-message-text .w-md-editor-text-container .w-md-editor-text {
+  white-space: pre-wrap !important;
+}
+
+.chat-message-text .w-md-editor-text-container .w-md-editor-text * {
+  white-space: pre-wrap !important;
+}
+
+.chat-issue-btn {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.chat-issue-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
 .chat-input-form {
   display: flex;
   align-items: center;

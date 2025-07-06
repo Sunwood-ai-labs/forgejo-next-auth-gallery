@@ -6,8 +6,8 @@ import NavBar from "../components/NavBar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Forgejo Auth TODO App",
-  description: "Forgejo Auth TODO App with Next.js",
+  title: "Forgejo Auth Gallery App",
+  description: "Forgejo Auth Gallery App with Next.js",
 };
 
 export default function RootLayout({ children }) {
