@@ -9,11 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/pg": "^8.10.9",
+    "date-fns": "^2.30.0",
+    "js-yaml": "^4.1.0",
     "next": "15.3.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
     "pg": "^8.11.3",
-    "@types/pg": "^8.10.9"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
