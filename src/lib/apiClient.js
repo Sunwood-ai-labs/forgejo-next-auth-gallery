@@ -17,6 +17,29 @@ class ForgejoApiClient {
     return await forgejoAuthInstance.apiRequest('/user/repos', { method: 'GET' });
   }
 
+  // Issueを作成
+  async createIssue(repoId, issueData) {
+    if (!forgejoAuthInstance || !forgejoAuthInstance.isAuthenticated()) {
+      throw new Error('Forgejo認証が必要です');
+    }
+    
+    // リポジトリ情報を取得してownerとnameを特定
+    const repos = await this.getForgejoRepos();
+    const repo = repos.find(r => r.id === repoId);
+    if (!repo) {
+      throw new Error('リポジトリが見つかりません');
+    }
+    
+    const endpoint = `/repos/${repo.owner.login}/${repo.name}/issues`;
+    return await forgejoAuthInstance.apiRequest(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(issueData)
+    });
+  }
+
   // 公開Forgejoリポジトリ一覧取得（未認証でもOK）
   static async getPublicForgejoRepos(forgejoUrl) {
     if (!forgejoUrl) {
