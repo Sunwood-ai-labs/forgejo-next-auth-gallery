@@ -1,9 +1,25 @@
-let messages = [];
+// チャンネル別メッセージ管理
+let channelMessages = {}; // { channelId: [...messages] }
 
-export async function GET() {
+// デフォルトチャンネル（一般）
+const DEFAULT_CHANNEL = "general";
+if (!channelMessages[DEFAULT_CHANNEL]) {
+  channelMessages[DEFAULT_CHANNEL] = [];
+}
+
+export async function GET(req) {
+  const url = new URL(req.url);
+  const channelId = url.searchParams.get("channel") || DEFAULT_CHANNEL;
+  
+  // チャンネルが存在しない場合は作成
+  if (!channelMessages[channelId]) {
+    channelMessages[channelId] = [];
+  }
+  
   // 最新50件のみ返す
   return Response.json({
-    messages: messages.slice(-50)
+    messages: channelMessages[channelId].slice(-50),
+    channel: channelId
   });
 }
 
@@ -13,10 +29,18 @@ export async function POST(req) {
     if (!userData.id) {
       return Response.json({ error: "認証が必要です" }, { status: 401 });
     }
-    const { text } = await req.json();
+    const { text, channel } = await req.json();
     if (!text || typeof text !== "string" || !text.trim()) {
       return Response.json({ error: "メッセージが空です" }, { status: 400 });
     }
+    
+    const channelId = channel || DEFAULT_CHANNEL;
+    
+    // チャンネルが存在しない場合は作成
+    if (!channelMessages[channelId]) {
+      channelMessages[channelId] = [];
+    }
+    
     const msg = {
       id: Date.now().toString() + Math.random().toString(36).slice(2),
       user: {
@@ -26,13 +50,19 @@ export async function POST(req) {
         avatar_url: userData.avatar_url
       },
       text: text.trim().slice(0, 500),
+      channel: channelId,
       createdAt: new Date().toISOString()
     };
-    messages.push(msg);
+    
+    channelMessages[channelId].push(msg);
     // 最新50件のみ保持
-    if (messages.length > 50) messages = messages.slice(-50);
+    if (channelMessages[channelId].length > 50) {
+      channelMessages[channelId] = channelMessages[channelId].slice(-50);
+    }
+    
     return Response.json({
-      messages: messages.slice(-50)
+      messages: channelMessages[channelId].slice(-50),
+      channel: channelId
     });
   } catch (e) {
     return Response.json({ error: "サーバーエラー" }, { status: 500 });
