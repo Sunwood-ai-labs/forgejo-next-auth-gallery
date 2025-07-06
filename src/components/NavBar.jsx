@@ -94,6 +94,14 @@ export default function NavBar() {
           <div style={{ display: "flex", alignItems: "center" }}>
             <ThemeToggle />
           </div>
+          {/* チャットリンク */}
+          <button
+            className="simple-login-btn"
+            style={{ fontSize: "1rem", padding: "8px 18px", marginRight: 12 }}
+            onClick={() => router.push("/chat")}
+          >
+            <i className="fas fa-comments"></i> チャット
+          </button>
           {isAuthenticated && user && (
             <div className="user-info" style={{ display: "flex", alignItems: "center", gap: 18 }}>
               <img
