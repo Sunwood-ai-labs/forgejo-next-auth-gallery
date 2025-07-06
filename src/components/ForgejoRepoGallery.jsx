@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import TodoApiClient from "../lib/apiClient";
+import ForgejoApiClient from "../lib/apiClient";
 import LoadingSpinner from "./LoadingSpinner";
 import yaml from "js-yaml";
 import { formatDistanceToNow } from "date-fns";
@@ -39,7 +39,7 @@ function getPaletteColor(repoId) {
 
 export default function ForgejoRepoGallery() {
   const auth = useAuth();
-  const [apiClient] = useState(() => new TodoApiClient(auth));
+  const [apiClient] = useState(() => new ForgejoApiClient(auth));
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -63,7 +63,7 @@ export default function ForgejoRepoGallery() {
           publicMode = false;
         } else {
           // 未認証：Forgejo公開リポジトリ一覧
-          data = await TodoApiClient.getPublicForgejoRepos(defaultForgejoUrl);
+          data = await ForgejoApiClient.getPublicForgejoRepos(defaultForgejoUrl);
           publicMode = true;
         }
         if (!mounted) return;
