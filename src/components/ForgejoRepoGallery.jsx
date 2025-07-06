@@ -8,6 +8,23 @@ import yaml from "js-yaml";
 import { formatDistanceToNow } from "date-fns";
 import ja from "date-fns/locale/ja";
 
+// サイトのカラーパレットに合わせたグラデーションセット
+const paletteGradients = [
+  ["var(--primary)", "var(--accent)"],
+  ["var(--accent)", "var(--secondary)"],
+  ["var(--neon-gold)", "var(--primary)"],
+  ["var(--secondary)", "var(--neon-gold)"],
+  ["var(--primary)", "var(--secondary)"],
+  ["var(--accent)", "var(--neon-gold)"],
+  ["var(--primary)", "var(--bg-light)"],
+  ["var(--secondary)", "var(--bg-dark)"],
+];
+
+function getPaletteGradient(repoId) {
+  const idx = typeof repoId === "number" ? repoId % paletteGradients.length : 0;
+  return paletteGradients[idx];
+}
+
 export default function ForgejoRepoGallery() {
   const auth = useAuth();
   const [apiClient] = useState(() => new TodoApiClient(auth));
@@ -25,14 +42,14 @@ export default function ForgejoRepoGallery() {
         const data = await apiClient.getForgejoRepos();
         if (!mounted) return;
 
-        // forgejo.yamlを全リポジトリ分取得
         const metaObj = {};
         await Promise.all(
           data.map(async (repo) => {
             try {
               const branch = repo.default_branch || "main";
-              const yamlUrl = `${repo.html_url}/raw/${branch}/forgejo.yaml`;
-              const res = await fetch(yamlUrl, { method: "GET" });
+              const rawUrl = `${repo.html_url}/raw/${branch}/forgejo.yaml`;
+              const proxyUrl = `/api/proxy-raw-yaml?url=${encodeURIComponent(rawUrl)}`;
+              const res = await fetch(proxyUrl, { method: "GET" });
               if (res.ok) {
                 const text = await res.text();
                 const meta = yaml.load(text);
@@ -40,14 +57,10 @@ export default function ForgejoRepoGallery() {
                   metaObj[repo.id] = {
                     title: meta.title || null,
                     emoji: meta.emoji || null,
-                    colorFrom: meta.colorFrom || null,
-                    colorTo: meta.colorTo || null,
                   };
                 }
               }
-            } catch (e) {
-              // 取得失敗・YAMLパース失敗は無視
-            }
+            } catch (e) {}
           })
         );
         if (mounted) {
@@ -67,7 +80,6 @@ export default function ForgejoRepoGallery() {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line
   }, [apiClient]);
 
   if (loading) {
@@ -98,17 +110,21 @@ export default function ForgejoRepoGallery() {
       <div className="repo-gallery-grid">
         {repos.map((repo) => {
           const meta = repoMeta[repo.id] || {};
-          const cardStyle =
-            meta.colorFrom && meta.colorTo
-              ? {
-                  background: `linear-gradient(135deg, ${meta.colorFrom} 0%, ${meta.colorTo} 100%)`,
-                  color: "#222",
-                }
-              : {};
-          // 相対日付
+          const [from, to] = getPaletteGradient(repo.id);
+          const cardStyle = {
+            background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
+            color: "#fff",
+          };
           let createdAgo = "";
+          let updatedAgo = "";
           if (repo.created_at) {
             createdAgo = formatDistanceToNow(new Date(repo.created_at), {
+              addSuffix: true,
+              locale: ja,
+            });
+          }
+          if (repo.updated_at) {
+            updatedAgo = formatDistanceToNow(new Date(repo.updated_at), {
               addSuffix: true,
               locale: ja,
             });
@@ -124,7 +140,7 @@ export default function ForgejoRepoGallery() {
             >
               {/* 上部：絵文字のみ */}
               <div className="repo-card-header" style={{ justifyContent: "center" }}>
-                <span style={{ fontSize: "2rem", margin: "0 0 0.2em 0" }}>
+                <span style={{ fontSize: "2rem", margin: "0 0 0.2em 0", color: "#fff" }}>
                   {meta.emoji || "📦"}
                 </span>
               </div>
@@ -134,30 +150,33 @@ export default function ForgejoRepoGallery() {
                   <button className="repo-like-btn" type="button" tabIndex={-1} style={{
                     display: "flex",
                     alignItems: "center",
-                    background: "rgba(255,255,255,0.7)",
+                    background: "rgba(255,255,255,0.18)",
                     border: "none",
                     borderRadius: "999px",
                     padding: "4px 12px",
                     fontWeight: 600,
                     fontSize: "1rem",
-                    color: "#FF3939",
+                    color: "#fff",
                     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
                     cursor: "pointer",
                   }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#FF3939" style={{ marginRight: 4 }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" style={{ marginRight: 4 }}>
                       <path d="M10.52 3.72c-1 6.38-5.62 7.49-5.62 12.45 0 3.4 4.62 6.02 8.1 6.02 2.6 0 7-2.77 7-7.5 0-4.36-4.77-9.04-7.95-11.47-.53-.4-1.4-.27-1.53.5Z" />
                       <path d="M13.2 13.95c.5-.5 1.2-.79 1.92-.79s1.4.29 1.91.83c2.53 2.53-1.2 8.03-4.4 7.9-3.23-.11-6.79-5.24-4.13-7.9l.04-.04a2.67 2.67 0 0 1 3.5-.25c.11.08.22.18.33.3l.4.39.43-.44Z" fill="#FFA600" />
                     </svg>
                     {repo.stars_count ?? 0}
                   </button>
-                  <span className="repo-created-ago" style={{ color: "#888", fontSize: "0.95em" }}>
-                    {createdAgo}
+                  <span className="repo-created-ago" style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.95em" }}>
+                    作成: {createdAgo}
+                  </span>
+                  <span className="repo-updated-ago" style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.95em" }}>
+                    更新: {updatedAgo}
                   </span>
                 </div>
-                <div className="repo-name" style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "2px" }}>
+                <div className="repo-name" style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "2px", color: "#fff" }}>
                   {meta.title || repo.full_name}
                 </div>
-                <div className="repo-desc" style={{ marginBottom: "6px" }}>
+                <div className="repo-desc" style={{ marginBottom: "6px", color: "rgba(255,255,255,0.92)" }}>
                   {repo.description
                     ? repo.description
                     : <span className="repo-desc-empty">説明なし</span>}
@@ -173,10 +192,10 @@ export default function ForgejoRepoGallery() {
                     alt={repo.owner?.login || "owner"}
                     style={{ width: 24, height: 24, borderRadius: "50%" }}
                   />
-                  <span className="repo-owner" style={{ fontWeight: 500, color: "#555" }}>
+                  <span className="repo-owner" style={{ fontWeight: 500, color: "#fff" }}>
                     {repo.owner?.login}
                   </span>
-                  <span className="repo-lang" style={{ marginLeft: "auto", color: "#666" }}>
+                  <span className="repo-lang" style={{ marginLeft: "auto", color: "rgba(255,255,255,0.85)" }}>
                     <i className="fas fa-code"></i> {repo.language || "N/A"}
                   </span>
                 </div>
