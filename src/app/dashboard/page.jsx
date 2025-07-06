@@ -5,7 +5,7 @@ import Head from 'next/head';
 // useRouter は AuthProvider が担当するので不要になる場合が多い
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import TodoApp from '../../components/TodoApp';
+import ForgejoRepoGallery from '../../components/ForgejoRepoGallery';
 
 export default function DashboardPage() {
   const { user, logout, isLoading, isAuthenticated } = useAuth();
@@ -29,12 +29,12 @@ export default function DashboardPage() {
   return (
     <>
       <Head>
-        <title>ダッシュボード - Forgejo TODOアプリ</title>
+        <title>Forgejoリポジトリギャラリー</title>
       </Head>
       <div className="dashboard">
         <header className="dashboard-header">
           <div className="header-content">
-            <h1><i className="fas fa-tasks"></i> TODO アプリ</h1>
+            <h1><i className="fas fa-book"></i> Forgejoリポジトリギャラリー</h1>
             <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
               {/* テーマ切り替えボタン */}
               <ThemeToggle />
@@ -58,7 +58,7 @@ export default function DashboardPage() {
         </header>
 
         <main className="main-content">
-          <TodoApp />
+          <ForgejoRepoGallery />
         </main>
       </div>
     </>
