@@ -97,10 +97,11 @@ export default function NavBar() {
           {/* チャットリンク */}
           <button
             className="simple-login-btn"
-            style={{ fontSize: "1rem", padding: "8px 18px", marginRight: 12 }}
+            style={{ fontSize: "1rem", padding: "10px", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "none" }}
             onClick={() => router.push("/chat")}
+            title="チャット"
           >
-            <i className="fas fa-comments"></i> チャット
+            <i className="fas fa-comments"></i>
           </button>
           {isAuthenticated && user && (
             <div className="user-info" style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -115,11 +116,11 @@ export default function NavBar() {
               <button
                 id="logoutBtn"
                 className="logout-btn"
-                style={{ fontSize: "1rem", padding: "8px 18px", marginLeft: 0 }}
+                style={{ fontSize: "1rem", padding: "10px", marginLeft: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
                 onClick={logout}
+                title="ログアウト"
               >
                 <i className="fas fa-sign-out-alt"></i>
-                ログアウト
               </button>
             </div>
           )}
