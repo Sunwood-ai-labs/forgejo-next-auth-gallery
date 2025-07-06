@@ -44,6 +44,10 @@ export default function ForgejoRepoGallery() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [repoMeta, setRepoMeta] = useState({});
+  const [isPublic, setIsPublic] = useState(false);
+
+  // 公開ForgejoサーバーURL（未ログイン時はここを参照）
+  const defaultForgejoUrl = "http://192.168.0.131:3000/";
 
   useEffect(() => {
     let mounted = true;
@@ -51,7 +55,17 @@ export default function ForgejoRepoGallery() {
       setLoading(true);
       setError("");
       try {
-        const data = await apiClient.getForgejoRepos();
+        let data = [];
+        let publicMode = false;
+        if (auth.user) {
+          // 認証済み：自分の権限で見れるリポジトリ
+          data = await apiClient.getForgejoRepos();
+          publicMode = false;
+        } else {
+          // 未認証：Forgejo公開リポジトリ一覧
+          data = await TodoApiClient.getPublicForgejoRepos(defaultForgejoUrl);
+          publicMode = true;
+        }
         if (!mounted) return;
 
         const metaObj = {};
@@ -78,6 +92,7 @@ export default function ForgejoRepoGallery() {
         if (mounted) {
           setRepos(data);
           setRepoMeta(metaObj);
+          setIsPublic(publicMode);
         }
       } catch (err) {
         setError(
@@ -92,7 +107,7 @@ export default function ForgejoRepoGallery() {
     return () => {
       mounted = false;
     };
-  }, [apiClient]);
+  }, [apiClient, auth.user]);
 
   if (loading) {
     return <LoadingSpinner message="リポジトリ一覧を取得中..." />;
@@ -117,7 +132,8 @@ export default function ForgejoRepoGallery() {
   return (
     <section className="repo-gallery-section">
       <h2 className="repo-gallery-title">
-        <i className="fas fa-book"></i> Forgejoリポジトリ一覧
+        <i className="fas fa-book"></i>
+        {isPublic ? " Forgejo公開リポジトリ一覧（ログイン不要）" : " あなたのForgejoリポジトリ一覧"}
       </h2>
       <div className="repo-gallery-grid">
         {repos.map((repo) => {

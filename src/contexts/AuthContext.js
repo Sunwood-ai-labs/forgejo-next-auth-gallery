@@ -35,12 +35,16 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         if (!isLoading) {
-            const isAuthPage = pathname === '/login'; // ログインページか
+            // 保護ページ一覧（未認証時のみリダイレクト）
+            const protectedRoutes = ['/dashboard'];
+            const isProtected = protectedRoutes.includes(pathname);
+            const isAuthPage = pathname === '/login';
             if (isAuthenticated && isAuthPage) {
                 router.replace('/dashboard'); // 認証済みでログインページにいたらダッシュボードへ
-            } else if (!isAuthenticated && !isAuthPage) {
-                router.replace('/login'); // 未認証でログインページ以外にいたらログインページへ
+            } else if (!isAuthenticated && isProtected) {
+                router.replace('/login'); // 未認証で保護ページにいたらログインページへ
             }
+            // トップページやその他は未認証でもアクセス可
         }
     }, [isAuthenticated, isLoading, pathname, router]);
 

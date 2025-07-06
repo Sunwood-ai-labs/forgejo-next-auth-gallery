@@ -32,31 +32,6 @@ export default function DashboardPage() {
         <title>Forgejoリポジトリギャラリー</title>
       </Head>
       <div className="dashboard">
-        <header className="dashboard-header">
-          <div className="header-content">
-            <h1><i className="fas fa-book"></i> Forgejoリポジトリギャラリー</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-              {/* テーマ切り替えボタン */}
-              <ThemeToggle />
-              {user && (
-                <div className="user-info">
-                  <img
-                    id="userAvatar"
-                    className="user-avatar"
-                    src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.login)}&background=667eea&color=fff`}
-                    alt="Avatar"
-                  />
-                  <span id="userName">{user.full_name || user.login}</span>
-                  <button id="logoutBtn" className="logout-btn" onClick={logout}>
-                    <i className="fas fa-sign-out-alt"></i>
-                    ログアウト
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
         <main className="main-content">
           <ForgejoRepoGallery />
         </main>

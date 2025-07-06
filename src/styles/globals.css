@@ -1293,10 +1293,10 @@ body {
 
 /* --- テーマ切り替えトグルボタン --- */
 .theme-toggle-btn {
-  position: fixed;
-  top: 18px;
-  right: 18px;
-  z-index: 20000;
+  /* position: fixed; ← NavBar内では不要 */
+  /* top: 18px; */
+  /* right: 18px; */
+  /* z-index: 20000; */
   background: linear-gradient(135deg, var(--accent), var(--secondary));
   color: #fff;
   border: none;
@@ -1308,6 +1308,13 @@ body {
   box-shadow: 0 2px 8px rgba(4,191,173,0.18);
   cursor: pointer;
   transition: background 0.3s, box-shadow 0.3s;
+  min-width: 110px;
+  margin-right: 0;
+  margin-left: 0;
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .theme-toggle-btn:hover {
   background: linear-gradient(135deg, var(--secondary), var(--accent));

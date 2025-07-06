@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "../styles/globals.css";
-import { AuthProvider } from "../contexts/AuthContext"; // AuthProviderをインポート
+import { AuthProvider } from "../contexts/AuthContext";
+import NavBar from "../components/NavBar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,12 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <AuthProvider>
+          {/* ナビゲーションバーを全ページ共通で表示 */}
+          <div style={{ minHeight: "56px" }}>
+            <div style={{ position: "relative", zIndex: 100 }}>
+              <NavBar />
+            </div>
+          </div>
           {children}
         </AuthProvider>
       </body>
