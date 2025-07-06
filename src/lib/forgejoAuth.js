@@ -7,6 +7,7 @@ class ForgejoAuth {
         this.baseUrl = null;
         this.token = null; // API Token or Basic Auth (username:password)
         this.userInfo = null;
+        this.authType = null; // 'token' or 'basic'
         this.isInitialized = false;
         this.storageKey = 'forgejo_auth_next';
     }
@@ -22,21 +23,25 @@ class ForgejoAuth {
         try {
             const savedAuth = this._loadSavedAuth();
             if (savedAuth && savedAuth.token && savedAuth.baseUrl) {
-                // トークンがBasic認証の形式かAPIトークンかを判断して再認証
-                if (savedAuth.token.includes(':')) { // Basic Auth
-                    // Basic Authの場合、ユーザー名とパスワードの再入力が必要なため、ここでは単純に復元しない。
-                    // もしくは、保存されたユーザー情報で代用する。今回はユーザー情報があればOKとする。
-                    if (savedAuth.userInfo) {
-                        this.baseUrl = savedAuth.baseUrl;
-                        this.token = savedAuth.token;
-                        this.userInfo = savedAuth.userInfo;
-                         console.log('Basic Auth session restored from localStorage (userInfo only)');
-                    } else {
-                        this._clearSavedAuth(); // 不完全な情報はクリア
+                this.baseUrl = savedAuth.baseUrl;
+                this.token = savedAuth.token;
+                this.userInfo = savedAuth.userInfo;
+                this.authType = savedAuth.authType || null;
+                if (this.authType === 'token') {
+                    // APIトークン
+                    // 既にuserInfoがあれば再認証不要
+                    if (!this.userInfo) {
+                        await this.loginWithToken(savedAuth.token, savedAuth.baseUrl, false);
+                        console.log('API Token session restored from localStorage');
                     }
-                } else { // API Token
-                    await this.loginWithToken(savedAuth.token, savedAuth.baseUrl, false);
-                    console.log('API Token session restored from localStorage');
+                } else if (this.authType === 'basic') {
+                    // Basic認証
+                    // userInfoがあればOK
+                    if (this.userInfo) {
+                        console.log('Basic Auth session restored from localStorage (userInfo only)');
+                    } else {
+                        this._clearSavedAuth();
+                    }
                 }
             }
         } catch (error) {
@@ -60,6 +65,7 @@ class ForgejoAuth {
         }
         this.baseUrl = forgejoBaseUrl.replace(/\/$/, '');
         this.token = apiToken; // APIトークンを直接保存
+        this.authType = 'token';
 
         try {
             const response = await fetch(`${this.baseUrl}/api/v1/user`, {
@@ -118,6 +124,7 @@ class ForgejoAuth {
         this.baseUrl = forgejoBaseUrl.replace(/\/$/, '');
         const basicAuthToken = btoa(`${username}:${password}`);
         this.token = basicAuthToken; // "username:password" 形式ではなく、Base64エンコードされたトークンを保存
+        this.authType = 'basic';
 
         try {
             const response = await fetch(`${this.baseUrl}/api/v1/user`, {
@@ -215,6 +222,7 @@ class ForgejoAuth {
                     token: this.token, // APIトークンまたはBase64エンコードされたBasic認証情報
                     baseUrl: this.baseUrl,
                     userInfo: this.userInfo,
+                    authType: this.authType,
                     timestamp: Date.now()
                 };
                 localStorage.setItem(this.storageKey, JSON.stringify(authData));
@@ -279,33 +287,13 @@ class ForgejoAuth {
         const url = `${this.baseUrl}/api/v1${endpoint}`;
 
         let authHeaderValue = '';
-        // this.tokenが":"を含むか、またはBase64文字列として妥当かで判断もできるが、
-        // loginWithToken と loginWithBasicAuth で token の性質を明確にしているので、
-        // ここではシンプルにtokenの形式で判断する。
-        // APIトークンは通常コロンを含まない。Basic認証トークンはbtoa()の結果なのでコロンを含まないが、
-        // loginWithBasicAuthで保存するtokenはbtoaの結果。
-        // loginWithTokenで保存するtokenは生のAPIトークン。
-        // ここでは、保存されたトークンがAPIトークンかBasic認証かを区別する方法が必要。
-        // 一つの方法は、保存時に type: 'api' | 'basic' も保存すること。
-        // 現状の実装では、トークンが ":" を含んでいたらBasic認証時の元データとみなし、
-        // そうでなければAPIトークンか、Basic認証のBase64エンコード済みトークンとみなす。
-        // より堅牢なのは、login時にauthTypeを保存すること。
-        // 今回は、initializeの時点でtokenの形式を判定し、適切にthis.tokenに格納している前提。
-        // Basic認証の場合、this.tokenにはbtoa(`${username}:${password}`)が入る。
-        // APIトークンの場合、this.tokenにはAPIトークンそのものが入る。
-        // そのため、Authorizationヘッダーのプレフィックスで区別する。
-        // APIトークンは通常 `token ` プレフィックス。
-        // Basic認証は `Basic ` プレフィックス。
-        // `forgejoAuth.token` にはプレフィックスを含めない方針とする。
-
-        const isLikelyBasicAuth = this.userInfo && this.userInfo.login && this.token && this.token.length > 40 && this.token.endsWith('='); // heuristic
-
-        if (isLikelyBasicAuth && this.token.match(/^[A-Za-z0-9+/=]+$/)) { // Base64 encoded
-             authHeaderValue = `Basic ${this.token}`;
-        } else { // Assumed API Token
-             authHeaderValue = `token ${this.token}`;
+        if (this.authType === 'basic') {
+            authHeaderValue = `Basic ${this.token}`;
+        } else if (this.authType === 'token') {
+            authHeaderValue = `token ${this.token}`;
+        } else {
+            throw new Error('認証方式が不明です。再度ログインしてください。');
         }
-
 
         const requestOptions = {
             ...options,
