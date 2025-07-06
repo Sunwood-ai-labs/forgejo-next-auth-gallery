@@ -57,6 +57,127 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+/* =========================
+   Forgejo Repo Gallery (Huggingface風)
+   ========================= */
+.repo-gallery-section {
+  background: var(--bg-light);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(2,94,115,0.08);
+  padding: 32px 24px;
+  margin-bottom: 40px;
+}
+.repo-gallery-title {
+  font-size: 1.4rem;
+  color: var(--primary);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.repo-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 24px;
+}
+.repo-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(4,191,173,0.10);
+  padding: 20px 18px 16px 18px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.2s;
+  border: 2px solid var(--bg-dark);
+  min-height: 180px;
+}
+.repo-card:hover {
+  box-shadow: 0 8px 32px rgba(4,191,173,0.18);
+  border-color: var(--accent);
+  transform: translateY(-2px) scale(1.02);
+}
+.repo-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.repo-owner-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  object-fit: cover;
+  background: var(--bg-dark);
+}
+.repo-owner {
+  font-weight: 600;
+  color: var(--secondary);
+  font-size: 1rem;
+}
+.repo-card-body {
+  flex: 1;
+  margin-bottom: 10px;
+}
+.repo-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+.repo-desc {
+  color: #666;
+  font-size: 0.97rem;
+  min-height: 32px;
+}
+.repo-desc-empty {
+  color: #bbb;
+  font-style: italic;
+}
+.repo-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.93rem;
+  color: var(--secondary);
+  margin-top: 4px;
+}
+.repo-lang i,
+.repo-stars i,
+.repo-updated i {
+  margin-right: 4px;
+  color: var(--accent);
+}
+.repo-gallery-error,
+.repo-gallery-empty {
+  background: #fffbe6;
+  color: #b85c38;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 18px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+.repo-gallery-error i,
+.repo-gallery-empty i {
+  margin-right: 8px;
+  color: #f2c166;
+}
+@media (max-width: 600px) {
+  .repo-gallery-section {
+    padding: 18px 6px;
+  }
+  .repo-gallery-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .repo-card {
+    padding: 14px 8px 12px 8px;
+  }
+}
 /* ログインフォーム */
 .login-container {
     display: flex;
