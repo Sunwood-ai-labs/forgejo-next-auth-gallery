@@ -1,9 +1,21 @@
 // API Client for TODO operations
 
+import forgejoAuthInstance from './forgejoAuth';
+
 class TodoApiClient {
   constructor(authContext) {
     this.authContext = authContext;
     this.baseUrl = '/api/todos';
+  }
+
+  // Forgejoリポジトリ一覧取得
+  async getForgejoRepos() {
+    // 認証済みかチェック
+    if (!forgejoAuthInstance || !forgejoAuthInstance.isAuthenticated()) {
+      throw new Error('Forgejo認証が必要です');
+    }
+    // /api/v1/user/repos を叩く
+    return await forgejoAuthInstance.apiRequest('/user/repos', { method: 'GET' });
   }
 
   // 認証ヘッダーを取得
